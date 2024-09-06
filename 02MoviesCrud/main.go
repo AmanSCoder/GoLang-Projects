@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
-	"encoding/json"
 	"math/rand"
 	"net/http"
 	"strconv"
+
 	"github.com/gorilla/mux"
 )
 
@@ -23,79 +24,111 @@ type Director struct {
 }
 
 var movies []Movie
+var templates *template.Template
 
-func getMovies(w http.ResponseWriter,r *http.Request){
-	w.Header().Set("Content-type","application/json")
-	json.NewEncoder(w).Encode(movies)
+func getMovies(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "text/html")
+	templates.ExecuteTemplate(w, "movies.html", movies)
 }
 
-func deleteMovie(w http.ResponseWriter,r *http.Request){
-	w.Header().Set("Content-Type","application/json")
-	params:=mux.Vars(r)
 
-	for index,item:=range movies{
-		if item.ID == params["id"]{
-			movies=append(movies[:index],movies[index+1:]... )
+func getCreateMoviePage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-type", "text/html")
+	templates.ExecuteTemplate(w, "createMovie.html", movies)
+}
+
+
+func getMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	params := mux.Vars(r)
+
+	for _, item := range movies {
+		if item.ID == params["id"] {
+			templates.ExecuteTemplate(w, "movie.html", item)
+			return
+		}
+	}
+}
+
+
+
+func createMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
+	var movie Movie
+	movie.Isbn = r.FormValue("isbn")
+	movie.Title = r.FormValue("title")
+	movie.Director = &Director{
+		Firstname: r.FormValue("firstname"),
+		Lastname:  r.FormValue("lastname"),
+	}
+	movie.ID = strconv.Itoa(rand.Intn(1000000000))
+	movies = append(movies, movie)
+	http.Redirect(w, r, "/movies", http.StatusSeeOther)
+}
+
+func updateMovieForm(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	params := mux.Vars(r)
+
+	for _, item := range movies {
+		if item.ID == params["id"] {
+			templates.ExecuteTemplate(w, "update.html", item)
+			return
+		}
+	}
+}
+
+func updateMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
+	params := mux.Vars(r)
+
+	for index, item := range movies {
+		if item.ID == params["id"] {
+			movies = append(movies[:index], movies[index+1:]...)
+			var movie Movie
+			movie.Isbn = r.FormValue("isbn")
+			movie.Title = r.FormValue("title")
+			movie.Director = &Director{
+				Firstname: r.FormValue("firstname"),
+				Lastname:  r.FormValue("lastname"),
+			}
+			movie.ID = params["id"]
+			movies = append(movies, movie)
+			http.Redirect(w, r, "/movies", http.StatusSeeOther)
+			return
+		}
+	}
+}
+
+func deleteMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/x-www-form-urlencoded")
+	params := mux.Vars(r)
+
+	for index, item := range movies {
+		if item.ID == params["id"] {
+			movies = append(movies[:index], movies[index+1:]...)
 			break
 		}
 	}
-	json.NewEncoder(w).Encode(movies)
+	http.Redirect(w, r, "/movies", http.StatusSeeOther)
 }
-func getMovie(w http.ResponseWriter,r *http.Request){
-
-	w.Header().Set("Content-Type","application/json")
-	params:=mux.Vars(r)
-
-	for _,item:=range movies{
-		if item.ID==params["id"]{
-			json.NewEncoder(w).Encode(item)
-			return 
-		}
-	}
-}
-
-func createMovie(w http.ResponseWriter,r *http.Request){
-
-	w.Header().Set("Content-Type","application/json")
-	var movie Movie
-	_=json.NewDecoder(r.Body).Decode(&movie)
-	movie.ID=strconv.Itoa(rand.Intn(1000000000))
-	movies=append(movies, movie)
-	json.NewEncoder(w).Encode(movie)
-}
-
-func updateMovie(w http.ResponseWriter,r *http.Request){
-
-	w.Header().Set("Content-Type","application/json")
-	params:=mux.Vars(r)
-	for index,item:=range movies{
-		if item.ID ==params["id"] {
-			movies=append(movies[:index],movies[index+1:]... )
-			var movie Movie
-			_=json.NewDecoder(r.Body).Decode(&movie)
-			movie.ID=strconv.Itoa(rand.Intn(1000000000))
-			movies=append(movies, movie)
-			json.NewEncoder(w).Encode(movie)
-			return 
-		}
-	}
-}
-
-
-
 
 func main() {
 	r := mux.NewRouter()
 
+	templates = template.Must(template.ParseGlob("templates/*.html"))
+
 	movies = append(movies, Movie{ID: "1", Isbn: "5528422", Title: "Movie one", Director: &Director{Firstname: "John", Lastname: "Doe"}})
-	movies= append(movies, Movie{ID: "2", Isbn: "985", Title: "Movie Two", Director: &Director{Firstname: "Steve", Lastname: "Smith"}})
+	movies = append(movies, Movie{ID: "2", Isbn: "985", Title: "Movie Two", Director: &Director{Firstname: "Steve", Lastname: "Smith"}})
+
 	r.HandleFunc("/movies", getMovies).Methods("GET")
+	r.HandleFunc("/movies/newcreate", getCreateMoviePage).Methods("GET")
 	r.HandleFunc("/movies/{id}", getMovie).Methods("GET")
 	r.HandleFunc("/movies", createMovie).Methods("POST")
-	r.HandleFunc("/movies/{id}", updateMovie).Methods("PUT")
-	r.HandleFunc("/movies/{id}", deleteMovie).Methods("DELETE")
+	r.HandleFunc("/movies/{id}/edit", updateMovieForm).Methods("GET")
+	r.HandleFunc("/movies/{id}", updateMovie).Methods("POST")
+	r.HandleFunc("/movies/{id}", deleteMovie).Methods("POST")
 
-	fmt.Printf("Starting server at port 8000\n")
+	fmt.Println("Starting server at port 8000")
 	log.Fatal(http.ListenAndServe(":8000", r))
-
 }

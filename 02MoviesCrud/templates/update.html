@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Movie</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+            padding: 40px;
+            margin: 0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            color: #343a40;
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #495057;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #007bff;
+            text-decoration: none;
+            border-bottom: 1px solid #007bff;
+            padding-bottom: 2px;
+        }
+
+        a:hover {
+            color: #0056b3;
+            border-bottom: 1px solid #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Edit Movie</h1>
+        <form action="/movies/{{.ID}}" method="POST">
+            <input type="hidden" name="_method" value="PUT">
+            <label for="isbn">ISBN:</label>
+            <input type="text" id="isbn" name="isbn" value="{{.Isbn}}">
+            <label for="title">Title:</label>
+            <input type="text" id="title" name="title" value="{{.Title}}">
+            <label for="firstname">Director First Name:</label>
+            <input type="text" id="firstname" name="firstname" value="{{.Director.Firstname}}">
+            <label for="lastname">Director Last Name:</label>
+            <input type="text" id="lastname" name="lastname" value="{{.Director.Lastname}}">
+            <button type="submit">Update</button>
+        </form>
+        <a href="/movies">Back to list</a>
+    </div>
+</body>
+</html>
